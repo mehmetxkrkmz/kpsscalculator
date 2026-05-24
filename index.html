@@ -82,34 +82,52 @@
   </div>
 
   <!-- ========================================== -->
-  <!-- ODAK MODU KRONOMETRESİ OVERLAY -->
+  <!-- PREMIUM ZEN ODAK MODU OVERLAY -->
   <!-- ========================================== -->
-  <div id="focus-overlay" class="flex flex-col justify-center items-center">
-    <div class="focus-overlay-content flex flex-col items-center max-w-md w-full px-6">
+  <div id="zen-focus-overlay" class="fixed inset-0 z-[9999] opacity-0 pointer-events-none transition-all duration-700 flex flex-col justify-center items-center">
+    <!-- Arka plan bulanıklık ve karartma -->
+    <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-2xl"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-slate-950/50 to-slate-950/90"></div>
+    
+    <!-- İçerik -->
+    <div class="relative z-10 flex flex-col items-center">
       
-      <!-- Premium Rectangular Light Ring and Chronometer -->
-      <div class="focus-timer-container timer-paused mb-8 glow-sapphire" id="timer-container">
-        <div class="focus-timer-inner">
-          <span class="text-[10px] text-slate-500 tracking-widest uppercase mb-1">Odaklanma Süresi</span>
-          <div id="focus-time-display" class="font-mono text-5xl font-bold text-slate-100 tracking-wider">00:00:00</div>
-          <span class="text-[9px] text-emeraldNeon tracking-widest uppercase mt-2 glow-pulse" id="timer-status">Hazır</span>
-        </div>
-      </div>
-      
-      <div class="text-center mb-10 max-w-sm">
-        <h2 class="text-xl font-bold text-slate-100 mb-2">Odaklanma Modu Aktif</h2>
-        <p class="text-xs text-slate-400 leading-relaxed">Dış dünyadan arınarak hedefinize odaklanın. Kronometre çalıştığı sürece tüm platform dikkatinizi dağıtmamak için karartılacaktır.</p>
+      <!-- Başlık -->
+      <div id="zen-title" class="text-sm font-bold uppercase tracking-[0.3em] mb-12 text-slate-400 flex items-center gap-3">
+        <i id="zen-title-icon" class="fa-solid fa-stopwatch text-emeraldNeon"></i> 
+        <span id="zen-title-text">Kronometre Odak Modu</span>
       </div>
 
-      <!-- Control Buttons -->
-      <div class="flex gap-4">
-        <button id="btn-timer-toggle" class="px-6 py-3 rounded-full bg-emeraldNeon hover:bg-emerald-600 text-cyberDark font-bold tracking-wider text-xs uppercase flex items-center gap-2 transition-all duration-300 transform hover:scale-105 glow-emerald">
-          <i class="fa-solid fa-play" id="timer-btn-icon"></i> <span id="timer-btn-text">Başlat</span>
+      <!-- Dev Halka ve Saat Container -->
+      <div class="relative w-72 h-72 sm:w-96 sm:h-96 flex justify-center items-center mb-12">
+        <!-- SVG Halka -->
+        <svg class="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="46" fill="transparent" stroke="rgba(30, 41, 59, 0.4)" stroke-width="1.5"></circle>
+          <circle id="zen-progress-ring" cx="50" cy="50" r="46" fill="transparent" stroke="#10b981" stroke-width="1.5" stroke-dasharray="289.03" stroke-dashoffset="0" stroke-linecap="round" style="filter: drop-shadow(0 0 6px rgba(16,185,129,0.5)); transition: stroke-dashoffset 0.1s linear, stroke 0.5s ease;"></circle>
+        </svg>
+
+        <!-- Saat Metni -->
+        <div id="zen-time-display" class="font-mono text-5xl sm:text-6xl font-bold text-slate-50 tracking-widest drop-shadow-2xl z-10" style="font-variant-numeric: tabular-nums;">00:00</div>
+      </div>
+
+      <!-- Kontroller -->
+      <div class="flex items-center gap-6">
+        <button id="zen-btn-start" class="w-16 h-16 rounded-full bg-slate-800/60 hover:bg-slate-700 text-white flex justify-center items-center transition-all duration-300 hover:scale-105 border border-slate-700/50 backdrop-blur-md shadow-xl" onclick="ZenTimer.start()">
+          <i class="fa-solid fa-play text-xl ml-1"></i>
         </button>
-        <button id="btn-timer-exit" class="px-6 py-3 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold tracking-wider text-xs uppercase flex items-center gap-2 transition-all duration-300 border border-slate-700 hover:border-slate-500">
-          <i class="fa-solid fa-xmark"></i> Odaktan Çık
+        <button id="zen-btn-pause" class="w-16 h-16 rounded-full bg-slate-800/60 hover:bg-slate-700 text-amber-400 flex justify-center items-center transition-all duration-300 hover:scale-105 border border-slate-700/50 backdrop-blur-md shadow-xl hidden" onclick="ZenTimer.pause()">
+          <i class="fa-solid fa-pause text-xl"></i>
+        </button>
+        <button id="zen-btn-reset" class="w-14 h-14 rounded-full bg-slate-800/40 hover:bg-slate-700 text-rose-400 flex justify-center items-center transition-all duration-300 hover:scale-105 border border-slate-700/30 backdrop-blur-md" onclick="ZenTimer.reset()">
+          <i class="fa-solid fa-rotate-right text-lg"></i>
         </button>
       </div>
+
+      <!-- Çıkış -->
+      <button id="zen-btn-exit" class="mt-16 px-6 py-2 rounded-full text-[10px] font-bold text-slate-500 hover:text-slate-300 tracking-widest uppercase transition-colors flex items-center gap-2" onclick="ZenTimer.close()">
+        <i class="fa-solid fa-xmark"></i> Odaktan Çık
+      </button>
+
     </div>
   </div>
 
@@ -521,7 +539,7 @@
             <p class="text-[10px] text-slate-400 mb-3 leading-tight">Deneme çözerken odak moduna geçmek için süre belirleyin.</p>
             <div class="flex gap-2">
               <input type="number" id="countdown-input" min="1" max="180" class="neon-input flex-1 px-3 py-2 rounded-lg text-xs" placeholder="Süre (dk) - Örn: 40">
-              <button type="button" class="px-4 py-2 rounded-lg bg-emeraldNeon hover:bg-emerald-600 text-cyberDark font-bold tracking-wider text-xs uppercase transition-all duration-300 glow-emerald" onclick="App.startCountdownTimer()">
+              <button type="button" class="px-4 py-2 rounded-lg bg-emeraldNeon hover:bg-emerald-600 text-cyberDark font-bold tracking-wider text-xs uppercase transition-all duration-300 glow-emerald" onclick="ZenTimer.open('countdown')">
                 <i class="fa-solid fa-play"></i> Başlat
               </button>
             </div>

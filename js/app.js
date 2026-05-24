@@ -203,9 +203,7 @@ window.App = {
       });
     }
 
-    document.getElementById('btn-focus-trigger').addEventListener('click', () => this.openFocusOverlay());
-    document.getElementById('btn-timer-toggle').addEventListener('click', () => this.toggleStopwatch());
-    document.getElementById('btn-timer-exit').addEventListener('click', () => this.closeFocusOverlay());
+    document.getElementById('btn-focus-trigger').addEventListener('click', () => ZenTimer.open('stopwatch'));
 
     // Note char counter
     const noteInput = document.getElementById('trial-note-input');
@@ -778,112 +776,7 @@ window.App = {
   },
 
   // STOPWATCH & COUNTDOWN
-  openFocusOverlay(mode = 'up') {
-    AppState.timerMode = mode;
-    document.getElementById('focus-overlay').classList.add('active');
-    document.body.style.overflow = 'hidden';
-  },
-
-  startCountdownTimer() {
-    const minStr = document.getElementById('countdown-input').value;
-    const mins = parseInt(minStr, 10);
-    if (!mins || mins <= 0) {
-      this.showToast('Lutfen gecerli bir dakika giriniz.', 'warning');
-      return;
-    }
-    
-    this.resetStopwatch();
-    AppState.timerSeconds = mins * 60;
-    this.updateStopwatchDisplay();
-    
-    this.openFocusOverlay('down');
-    this.toggleStopwatch();
-  },
-
-  closeFocusOverlay() {
-    if (AppState.timerIsRunning) {
-      this.toggleStopwatch(); // stop it
-    }
-    document.getElementById('focus-overlay').classList.remove('active');
-    document.body.style.overflow = '';
-  },
-
-  toggleStopwatch() {
-    const container = document.getElementById('timer-container');
-    const status = document.getElementById('timer-status');
-    const btnIcon = document.getElementById('timer-btn-icon');
-    const btnText = document.getElementById('timer-btn-text');
-
-    if (AppState.timerIsRunning) {
-      clearInterval(AppState.timerInterval);
-      AppState.timerIsRunning = false;
-      container.classList.add('timer-paused');
-      status.textContent = "DURAKLATILDI";
-      status.className = "text-[10px] text-amber-500 tracking-widest uppercase mt-2";
-      btnIcon.className = "fa-solid fa-play";
-      btnText.textContent = "Devam Et";
-    } else {
-      AppState.timerIsRunning = true;
-      container.classList.remove('timer-paused');
-      status.textContent = "ODAKLANILIYOR";
-      status.className = "text-[10px] text-emeraldNeon tracking-widest uppercase mt-2 animate-pulse";
-      btnIcon.className = "fa-solid fa-pause";
-      btnText.textContent = "Duraklat";
-
-      if (AppState.timerSeconds === 0 && AppState.timerMode === 'up') {
-        AppState.focusSessionsCount++;
-        localStorage.setItem('kpss_focus_sessions', AppState.focusSessionsCount);
-        this.calculateOverallStats();
-      }
-
-      AppState.timerInterval = setInterval(() => {
-        if (AppState.timerMode === 'down') {
-          AppState.timerSeconds--;
-          if (AppState.timerSeconds <= 0) {
-            this.toggleStopwatch();
-            this.showToast('Sure doldu! Odaklanma oturumu tamamlandi.', 'success');
-            AppState.focusSessionsCount++;
-            localStorage.setItem('kpss_focus_sessions', AppState.focusSessionsCount);
-            this.calculateOverallStats();
-            AppState.timerSeconds = 0;
-          }
-        } else {
-          AppState.timerSeconds++;
-        }
-        this.updateStopwatchDisplay();
-      }, 1000);
-    }
-  },
-
-  updateStopwatchDisplay() {
-    const hrs = Math.floor(AppState.timerSeconds / 3600);
-    const mins = Math.floor((AppState.timerSeconds % 3600) / 60);
-    const secs = AppState.timerSeconds % 60;
-    const formatted = [
-      hrs.toString().padStart(2, '0'),
-      mins.toString().padStart(2, '0'),
-      secs.toString().padStart(2, '0')
-    ].join(':');
-    document.getElementById('focus-time-display').textContent = formatted;
-  },
-
-  resetStopwatch() {
-    clearInterval(AppState.timerInterval);
-    AppState.timerSeconds = 0;
-    AppState.timerMode = 'up';
-    AppState.timerIsRunning = false;
-    this.updateStopwatchDisplay();
-    
-    const container = document.getElementById('timer-container');
-    container.classList.add('timer-paused');
-    
-    const status = document.getElementById('timer-status');
-    status.textContent = "HAZIR";
-    status.className = "text-[10px] text-emeraldNeon tracking-widest uppercase mt-2";
-    
-    document.getElementById('timer-btn-icon').className = "fa-solid fa-play";
-    document.getElementById('timer-btn-text').textContent = "Başlat";
-  },
+  // STOPWATCH & COUNTDOWN handled by ZenTimer
 
   // FIREBASE CONFIG
   async saveFirebaseConfig() {
@@ -1202,6 +1095,153 @@ window.App = {
     const target = tabName === 'home' ? 'mob-tab-home' : 'mob-tab-profile';
     const el = document.getElementById(target);
     if (el) el.classList.add('active');
+  }
+};
+
+// ==========================================
+// ZEN TIMER YÖNETİCİSİ (ODAK MODU)
+// ==========================================
+window.ZenTimer = {
+  mode: 'stopwatch', // 'stopwatch' or 'countdown'
+  isRunning: false,
+  startTime: 0,
+  pausedTime: 0,
+  totalSeconds: 0,
+  targetSeconds: 0,
+  rafId: null,
+
+  open(mode = 'stopwatch') {
+    this.mode = mode;
+    this.reset();
+    
+    // UI Update for Mode
+    const titleText = document.getElementById('zen-title-text');
+    const titleIcon = document.getElementById('zen-title-icon');
+    const ring = document.getElementById('zen-progress-ring');
+    
+    if (mode === 'countdown') {
+      const minStr = document.getElementById('countdown-input').value;
+      const mins = parseInt(minStr, 10);
+      if (!mins || mins <= 0) {
+        App.showToast('Lütfen geçerli bir dakika giriniz.', 'warning');
+        return;
+      }
+      this.targetSeconds = mins * 60;
+      this.totalSeconds = this.targetSeconds;
+      
+      titleText.textContent = "Sınav Zamanlayıcı";
+      titleIcon.className = "fa-solid fa-hourglass-half text-sky-400";
+      ring.style.stroke = "#38bdf8"; // sky-400
+      ring.style.filter = "drop-shadow(0 0 8px rgba(56,189,248,0.5))";
+    } else {
+      this.targetSeconds = 0;
+      this.totalSeconds = 0;
+      
+      titleText.textContent = "Kronometre Odak Modu";
+      titleIcon.className = "fa-solid fa-stopwatch text-emeraldNeon";
+      ring.style.stroke = "#10b981"; // emeraldNeon
+      ring.style.filter = "drop-shadow(0 0 8px rgba(16,185,129,0.5))";
+    }
+
+    this.updateDisplay();
+    document.getElementById('zen-focus-overlay').classList.remove('opacity-0', 'pointer-events-none');
+    document.body.style.overflow = 'hidden';
+  },
+
+  close() {
+    this.pause();
+    document.getElementById('zen-focus-overlay').classList.add('opacity-0', 'pointer-events-none');
+    document.body.style.overflow = '';
+  },
+
+  start() {
+    if (this.isRunning) return;
+    if (this.mode === 'countdown' && this.totalSeconds <= 0) return;
+    
+    this.isRunning = true;
+    this.startTime = Date.now() - this.pausedTime;
+    
+    document.getElementById('zen-btn-start').classList.add('hidden');
+    document.getElementById('zen-btn-pause').classList.remove('hidden');
+    
+    this.tick();
+  },
+
+  pause() {
+    if (!this.isRunning) return;
+    this.isRunning = false;
+    this.pausedTime = Date.now() - this.startTime;
+    cancelAnimationFrame(this.rafId);
+    
+    document.getElementById('zen-btn-start').classList.remove('hidden');
+    document.getElementById('zen-btn-pause').classList.add('hidden');
+  },
+
+  reset() {
+    this.pause();
+    this.pausedTime = 0;
+    this.totalSeconds = this.mode === 'countdown' ? this.targetSeconds : 0;
+    this.updateDisplay();
+  },
+
+  tick() {
+    if (!this.isRunning) return;
+    
+    const elapsed = Date.now() - this.startTime;
+    const currentSeconds = Math.floor(elapsed / 1000);
+    
+    if (this.mode === 'countdown') {
+      this.totalSeconds = this.targetSeconds - currentSeconds;
+      if (this.totalSeconds <= 0) {
+        this.totalSeconds = 0;
+        this.updateDisplay();
+        this.pause();
+        App.showToast('Süre doldu! Odaklanma oturumu tamamlandı.', 'success');
+        this.recordSession();
+        return;
+      }
+    } else {
+      this.totalSeconds = currentSeconds;
+    }
+    
+    this.updateDisplay();
+    this.rafId = requestAnimationFrame(() => this.tick());
+  },
+
+  updateDisplay() {
+    // Zaman Formatlama
+    const hrs = Math.floor(this.totalSeconds / 3600);
+    const mins = Math.floor((this.totalSeconds % 3600) / 60);
+    const secs = this.totalSeconds % 60;
+    
+    let formatted = '';
+    if (hrs > 0) {
+      formatted = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    } else {
+      formatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    document.getElementById('zen-time-display').textContent = formatted;
+    
+    // Halka Güncelleme
+    const ring = document.getElementById('zen-progress-ring');
+    const circumference = 289.03; // 2 * pi * 46
+    
+    if (this.mode === 'countdown') {
+      const percent = this.totalSeconds / this.targetSeconds;
+      const offset = circumference - (percent * circumference);
+      ring.style.strokeDashoffset = offset;
+    } else {
+      // Kronometre modunda her 60 saniyede bir tur atsın
+      const percent = (this.totalSeconds % 60) / 60;
+      const offset = circumference - (percent * circumference);
+      ring.style.strokeDashoffset = offset;
+    }
+  },
+
+  recordSession() {
+    AppState.focusSessionsCount++;
+    localStorage.setItem('kpss_focus_sessions', AppState.focusSessionsCount);
+    App.calculateOverallStats();
   }
 };
 
