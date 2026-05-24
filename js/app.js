@@ -118,8 +118,9 @@ window.App = {
 
     if (user) {
       const email = user.email;
-      nameDisplay.textContent = email.split('@')[0];
-      avatar.textContent = email.charAt(0).toUpperCase();
+      const displayName = user.displayName || email.split('@')[0];
+      nameDisplay.textContent = displayName;
+      avatar.textContent = displayName.charAt(0).toUpperCase();
       avatar.className = "w-6 h-6 rounded-full bg-emeraldNeon flex items-center justify-center text-xs font-bold text-cyberDark border border-emeraldNeon/20";
       dStatus.innerHTML = '<span class="text-emeraldNeon">OTURUM AÇIK</span>';
       dEmail.textContent = email;
@@ -205,6 +206,16 @@ window.App = {
     document.getElementById('btn-focus-trigger').addEventListener('click', () => this.openFocusOverlay());
     document.getElementById('btn-timer-toggle').addEventListener('click', () => this.toggleStopwatch());
     document.getElementById('btn-timer-exit').addEventListener('click', () => this.closeFocusOverlay());
+
+    // Note char counter
+    const noteInput = document.getElementById('trial-note-input');
+    const noteCount = document.getElementById('note-char-count');
+    if (noteInput && noteCount) {
+      noteInput.addEventListener('input', () => {
+        noteCount.textContent = noteInput.value.length + '/300';
+        noteCount.style.color = noteInput.value.length > 250 ? '#f59e0b' : '';
+      });
+    }
   },
 
   fixCoefficients(db) {
@@ -276,6 +287,7 @@ window.App = {
         ChartManager.renderBranchChart('branch-progress-chart', AppState.branchTrials, activeBranch);
       }, 50);
     }
+    this.setMobileTab(tabName);
   },
 
   // UI STATE MANAGEMENT
@@ -542,9 +554,38 @@ window.App = {
     `;
 
     container.innerHTML = html;
+
+    // Animated counter for score cells
+    this.animateScoreCells();
     
     // Save state for saving the trial (defaults to the most recent year)
     AppState.activeYear = years[0]; 
+  },
+
+  // Animasyonlu puan sayacı
+  animateScoreCells() {
+    const cells = document.querySelectorAll('#results-container [data-score]');
+    cells.forEach(cell => {
+      const target = parseFloat(cell.getAttribute('data-score'));
+      if (isNaN(target)) return;
+      const start = performance.now();
+      const duration = 900;
+      const startVal = 0;
+      const easeOut = t => 1 - Math.pow(1 - t, 3);
+      const tick = (now) => {
+        const elapsed = Math.min(now - start, duration);
+        const progress = easeOut(elapsed / duration);
+        const current = startVal + (target - startVal) * progress;
+        cell.textContent = current.toFixed(5);
+        if (elapsed < duration) {
+          requestAnimationFrame(tick);
+        } else {
+          cell.textContent = target.toFixed(5);
+          cell.classList.add('score-count-finish');
+        }
+      };
+      requestAnimationFrame(tick);
+    });
   },
 
   async saveGeneralTrial() {
@@ -578,6 +619,8 @@ window.App = {
     }
     const mainScore = parseFloat(scoreElem.getAttribute('data-score'));
 
+    const note = (document.getElementById('trial-note-input')?.value || '').trim();
+
     const trial = {
       id: 'trial_' + Date.now(),
       examType: AppState.examType,
@@ -586,18 +629,27 @@ window.App = {
       gy_net: parseFloat(gy_net.toFixed(2)),
       gk_net: parseFloat(gk_net.toFixed(2)),
       total_net: parseFloat(total_net.toFixed(2)),
-      score: mainScore
+      score: mainScore,
+      note: note
     };
 
     AppState.trials = await DbManager.saveTrial(trial);
     
     document.querySelectorAll('#puan-form input[type="number"]').forEach(input => input.value = '');
     document.getElementById('results-container').innerHTML = ''; // clear table after save
+    // Clear note
+    const noteInput = document.getElementById('trial-note-input');
+    if (noteInput) { noteInput.value = ''; }
+    const noteCount = document.getElementById('note-char-count');
+    if (noteCount) { noteCount.textContent = '0/300'; }
 
     this.showToast('Deneme basariyla kaydedildi!', 'success');
     this.calculateOverallStats();
     ChartManager.renderGeneralChart('general-progress-chart', AppState.trials);
     this.renderPastTrials();
+
+    // Show achievement badge based on score
+    this.showAchievement(mainScore);
   },
 
   // BRANCH TRIAL
@@ -1031,7 +1083,19 @@ window.App = {
       const dateStr = date.getDate().toString().padStart(2,'0') + '/' + (date.getMonth()+1).toString().padStart(2,'0') + '/' + date.getFullYear() + ' ' + date.getHours().toString().padStart(2,'0') + ':' + date.getMinutes().toString().padStart(2,'0');
       const originalIdx = trials.length - 1 - idx;
       const label = examLabels[t.examType] || t.examType;
-      return '<div class="flex items-center justify-between gap-3 py-2.5 px-3 mb-2 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all"><div class="flex items-center gap-3 min-w-0 flex-wrap"><span class="text-[10px] font-mono text-slate-500 shrink-0">' + dateStr + '</span><span class="text-[10px] font-bold text-violetNeon uppercase">' + label + '</span><span class="text-xs text-emeraldNeon font-bold">' + (t.score ? t.score.toFixed(2) : '0.00') + ' puan</span><span class="text-[10px] text-slate-400">Net: ' + (t.total_net ? t.total_net.toFixed(2) : '0.00') + '</span></div><button onclick="App.deleteTrialByIndex(' + originalIdx + ')" class="shrink-0 w-7 h-7 rounded-lg bg-rose-500/10 hover:bg-rose-500 border border-rose-500/20 hover:border-rose-500 text-rose-400 hover:text-white text-xs transition-all duration-200 flex items-center justify-center" title="Bu denemeyi sil"><i class="fa-solid fa-trash-can"></i></button></div>';
+      const noteHtml = t.note ? `<span class="trial-note-badge"><i class="fa-solid fa-pen-nib"></i>${t.note}</span>` : '';
+      return `<div class="flex items-center justify-between gap-3 py-2.5 px-3 mb-2 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all">
+        <div class="flex items-center gap-3 min-w-0 flex-wrap">
+          <span class="text-[10px] font-mono text-slate-500 shrink-0">${dateStr}</span>
+          <span class="text-[10px] font-bold text-violetNeon uppercase">${label}</span>
+          <span class="text-xs text-emeraldNeon font-bold">${t.score ? t.score.toFixed(2) : '0.00'} puan</span>
+          <span class="text-[10px] text-slate-400">Net: ${t.total_net ? t.total_net.toFixed(2) : '0.00'}</span>
+          ${noteHtml}
+        </div>
+        <button onclick="App.deleteTrialByIndex(${originalIdx})" class="shrink-0 w-7 h-7 rounded-lg bg-rose-500/10 hover:bg-rose-500 border border-rose-500/20 hover:border-rose-500 text-rose-400 hover:text-white text-xs transition-all duration-200 flex items-center justify-center" title="Bu denemeyi sil">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </div>`;
     }).join('');
   },
 
@@ -1046,6 +1110,93 @@ window.App = {
         this.renderPastTrials();
       }
     );
+  },
+
+  // ==========================
+  // ACHIEVEMENT BADGE + CONFETTI
+  // ==========================
+  showAchievement(score) {
+    const overlay = document.getElementById('achievement-overlay');
+    if (!overlay) return;
+
+    let tier;
+    if (score >= 85)      tier = { icon: '🏆', title: 'EFSANEVİ!', desc: 'Üstün Başarı Rozeti', color: '#f59e0b' };
+    else if (score >= 75) tier = { icon: '🥇', title: 'MÜKEMMEL!', desc: 'Altın Performans', color: '#10b981' };
+    else if (score >= 65) tier = { icon: '🥈', title: 'ÇOK İYİ!', desc: 'Gümüş Başarı', color: '#3b82f6' };
+    else if (score >= 55) tier = { icon: '🎯', title: 'GÜZEL!', desc: 'Hedefte Kalmaya Devam', color: '#8b5cf6' };
+    else                  tier = null; // No badge below 55
+
+    if (!tier) return;
+
+    // Confetti
+    this.launchConfetti(tier.color);
+
+    overlay.classList.remove('hidden');
+    overlay.style.display = 'flex';
+    overlay.innerHTML = `
+      <div class="achievement-popup">
+        <span class="achievement-icon">${tier.icon}</span>
+        <div class="achievement-title" style="color:${tier.color}">${tier.title}</div>
+        <span class="achievement-score">${score.toFixed(2)}</span>
+        <div class="achievement-desc">${tier.desc}</div>
+        <button
+          onclick="this.closest('.achievement-popup').classList.add('hide'); setTimeout(()=>{document.getElementById('achievement-overlay').style.display='none';document.getElementById('achievement-overlay').classList.add('hidden')},500)"
+          class="mt-5 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-200"
+          style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#94a3b8;"
+        >Kapat</button>
+      </div>
+    `;
+    // Auto close after 5s
+    setTimeout(() => {
+      const popup = overlay.querySelector('.achievement-popup');
+      if (popup) {
+        popup.classList.add('hide');
+        setTimeout(() => {
+          overlay.style.display = 'none';
+          overlay.classList.add('hidden');
+        }, 500);
+      }
+    }, 5000);
+  },
+
+  launchConfetti(accentColor = '#10b981') {
+    const colors = [accentColor, '#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ffffff'];
+    const count = 80;
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const startX = Math.random() * 100;
+        const duration = 2.5 + Math.random() * 2;
+        const size = 6 + Math.random() * 10;
+        piece.style.cssText = `
+          left: ${startX}vw;
+          top: -20px;
+          width: ${size}px;
+          height: ${size * 1.4}px;
+          background: ${color};
+          border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+          animation-duration: ${duration}s;
+          animation-delay: ${Math.random() * 0.8}s;
+          transform: rotateZ(${Math.random() * 360}deg);
+          opacity: 0.9;
+        `;
+        document.body.appendChild(piece);
+        setTimeout(() => piece.remove(), (duration + 1) * 1000);
+      }, i * 25);
+    }
+  },
+
+  // ==========================
+  // MOBILE TAB BAR SYNC
+  // ==========================
+  setMobileTab(tabName) {
+    const items = document.querySelectorAll('.mobile-tab-item');
+    items.forEach(item => item.classList.remove('active'));
+    const target = tabName === 'home' ? 'mob-tab-home' : 'mob-tab-profile';
+    const el = document.getElementById(target);
+    if (el) el.classList.add('active');
   }
 };
 

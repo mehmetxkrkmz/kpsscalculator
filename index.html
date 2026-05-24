@@ -42,11 +42,13 @@
 <body class="bg-cyberDark min-h-screen text-slate-200 antialiased relative overflow-x-hidden">
   
   <!-- Arkaplan Görsel Efektleri -->
-  <div class="light-beam"></div>
   <div id="stars-container" class="stars-container"></div>
   
   <!-- Global Toast Notification Container -->
   <div id="toast-container" class="fixed top-5 left-1/2 -translate-x-1/2 z-[11000] flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Achievement / Success Badge Overlay -->
+  <div id="achievement-overlay" class="hidden"></div>
 
   <!-- ========================================== -->
   <!-- AÇILIŞ SÜRECİ (SPLASH SCREEN & İMZA) -->
@@ -68,10 +70,13 @@
         <div class="splash-underline"></div>
       </div>
       <div class="splash-sub">PERFORMANS TAKİP &amp; ANALİTİK</div>
-      <div class="splash-badge">
-        <span class="splash-badge-dot"></span>
-        <span class="text-[10px] font-mono tracking-widest text-slate-400">MEHMET KORKMAZ</span>
-        <span class="splash-badge-dot"></span>
+      <div class="signature-premium">
+        <span class="signature-dot"></span>
+        <div class="flex flex-col items-center justify-center">
+          <span class="signature-label">Design & Code by</span>
+          <span class="signature-name">Mehmet Korkmaz</span>
+        </div>
+        <span class="signature-dot"></span>
       </div>
     </div>
   </div>
@@ -423,6 +428,24 @@
               <!-- Result cards injected by JS -->
             </div>
 
+            <!-- Deneme Notu -->
+            <div class="trial-note-wrapper" id="trial-note-wrapper">
+              <div class="trial-note-label">
+                <i class="fa-solid fa-pen-nib"></i>
+                Deneme Notu <span class="text-slate-500 font-normal normal-case">(İsteğe bağlı)</span>
+              </div>
+              <textarea
+                id="trial-note-input"
+                class="trial-note-input"
+                placeholder="Bu denemeyle ilgili notunuzu buraya yazın... (ruh haliniz, zorlandığınız konular, özel durumlar)"
+                rows="2"
+                maxlength="300"
+              ></textarea>
+              <div class="flex justify-end mt-1">
+                <span class="text-[10px] text-slate-600 font-mono" id="note-char-count">0/300</span>
+              </div>
+            </div>
+
             <div class="mt-6 flex justify-end">
               <button type="button" class="px-8 py-3.5 rounded-xl bg-emeraldNeon hover:bg-emerald-600 text-cyberDark font-bold tracking-wider text-xs uppercase transition-all duration-300 glow-emerald transform hover:scale-102 flex items-center gap-2" onclick="App.saveGeneralTrial()">
                 <i class="fa-solid fa-floppy-disk"></i> Deneme Sonucunu Kaydet
@@ -722,6 +745,26 @@
       
     </div>
   </div>
+
+  <!-- Mobil Alt Tab Bar (Sadece Mobil) -->
+  <nav id="mobile-tab-bar" role="tablist" aria-label="Ana Navigasyon">
+    <button class="mobile-tab-item active" id="mob-tab-home" onclick="App.switchTab('home'); App.setMobileTab('home')" aria-label="Hesaplama">
+      <i class="fa-solid fa-circle-nodes"></i>
+      <span>Hesaplama</span>
+    </button>
+    <button class="mobile-tab-item" id="mob-tab-profile" onclick="App.switchTab('profile'); App.setMobileTab('profile')" aria-label="Analitik">
+      <i class="fa-solid fa-chart-line"></i>
+      <span>Analitik</span>
+    </button>
+    <button class="mobile-tab-item" id="mob-tab-focus" onclick="App.openFocusOverlay()" aria-label="Odaklan">
+      <i class="fa-solid fa-stopwatch"></i>
+      <span>Odaklan</span>
+    </button>
+    <button class="mobile-tab-item" id="mob-tab-user" onclick="document.getElementById('btn-profile-dropdown').click()" aria-label="Profil">
+      <i class="fa-solid fa-user-circle"></i>
+      <span>Profil</span>
+    </button>
+  </nav>
 
   <!-- Master App Logic Connection -->
   <script type="module" src="js/app.js"></script>
