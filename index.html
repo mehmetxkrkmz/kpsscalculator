@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KPSS // Analitik & Performans Takip Platformu</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Tailwind CSS Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Custom Premium Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+  
+  <!-- Tailwind Configuration -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cyberDark: '#070a13',
+            cyberDeep: '#0b0f19',
+            emeraldNeon: '#10b981',
+            sapphireNeon: '#3b82f6',
+            violetNeon: '#8b5cf6'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-cyberDark min-h-screen text-slate-200 antialiased relative overflow-x-hidden">
+  
+  <div class="light-beam"></div>
+
+  <!-- Arkaplan Görsel Efektleri -->
+  <div class="light-beam"></div>
+  <canvas id="bg-canvas"></canvas>
+  <div id="stars-container" class="stars-container"></div>
+
+  <!-- ========================================== -->
+  <!-- AÇILIŞ SÜRECİ (SPLASH SCREEN & İMZA) -->
+  <!-- ========================================== -->
+  <div id="splash-screen">
+    <div class="splash-ring">
+      <div class="splash-logo">KPSS</div>
+    </div>
+    <div class="splash-sub">PERFORMANS TAKİP & ANALİTİK</div>
+    <div class="mt-8 flex flex-col items-center">
+      <span class="text-xs text-slate-500 block mb-1">Geliştirici</span>
+      <div id="splash-signature" class="font-mono text-emeraldNeon font-bold tracking-widest text-sm uppercase"></div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- ODAK MODU KRONOMETRESİ OVERLAY -->
+  <!-- ========================================== -->
+  <div id="focus-overlay" class="flex flex-col justify-center items-center">
+    <div class="focus-overlay-content flex flex-col items-center max-w-md w-full px-6">
+      
+      <!-- Premium Rotating Light Ring and Chronometer -->
+      <div class="focus-timer-container timer-paused mb-8 glow-sapphire" id="timer-container">
+        <div class="focus-timer-inner">
+          <span class="text-xs text-slate-500 tracking-widest uppercase mb-1">Odaklanma Süresi</span>
+          <div id="focus-time-display" class="font-mono text-4xl font-bold text-slate-100 tracking-wider">00:00:00</div>
+          <span class="text-[10px] text-emeraldNeon tracking-widest uppercase mt-2 glow-pulse" id="timer-status">Hazır</span>
+        </div>
+      </div>
+      
+      <div class="text-center mb-10 max-w-sm">
+        <h2 class="text-xl font-bold text-slate-100 mb-2">Odaklanma Modu Aktif</h2>
+        <p class="text-xs text-slate-400 leading-relaxed">Dış dünyadan arınarak hedefinize odaklanın. Kronometre çalıştığı sürece tüm platform dikkatinizi dağıtmamak için karartılacaktır.</p>
+      </div>
+
+      <!-- Control Buttons -->
+      <div class="flex gap-4">
+        <button id="btn-timer-toggle" class="px-6 py-3 rounded-full bg-emeraldNeon hover:bg-emerald-600 text-cyberDark font-bold tracking-wider text-xs uppercase flex items-center gap-2 transition-all duration-300 transform hover:scale-105 glow-emerald">
+          <i class="fa-solid fa-play" id="timer-btn-icon"></i> <span id="timer-btn-text">Başlat</span>
+        </button>
+        <button id="btn-timer-exit" class="px-6 py-3 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold tracking-wider text-xs uppercase flex items-center gap-2 transition-all duration-300 border border-slate-700 hover:border-slate-500">
+          <i class="fa-solid fa-xmark"></i> Odaktan Çık
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MAIN APP CONTAINER -->
+  <!-- ========================================== -->
+  <div class="max-w-7xl mx-auto px-4 md:px-8 py-6 flex flex-col min-h-screen">
+    
+    <!-- Navbar (Gezinti Çubuğu) -->
+    <header class="relative z-[9999] glass-panel rounded-2xl px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
+      
+      <!-- Logo -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emeraldNeon to-sapphireNeon flex justify-center items-center glow-sapphire">
+          <i class="fa-solid fa-graduation-cap text-cyberDark font-black text-xl"></i>
+        </div>
+        <div>
+          <span class="text-lg font-black tracking-widest text-slate-100 uppercase">KPSS <span class="text-emeraldNeon">//</span> ANALİTİK</span>
+          <span class="text-[9px] block text-slate-400 tracking-wider font-mono">PERFORMANCE TRACKING SUITE</span>
+        </div>
+      </div>
+      
+      <!-- Nav Tabs -->
+      <nav class="flex gap-1 bg-slate-950/60 p-1.5 rounded-xl border border-slate-800/80">
+        <button id="tab-btn-home" class="custom-tab-btn active px-4 py-2 text-xs md:text-sm font-semibold rounded-lg text-slate-400 hover:text-slate-200">
+          <i class="fa-solid fa-circle-nodes mr-1.5 text-emeraldNeon"></i>Hesaplama & Veri Girişi
+        </button>
+        <button id="tab-btn-profile" class="custom-tab-btn px-4 py-2 text-xs md:text-sm font-semibold rounded-lg text-slate-400 hover:text-slate-200">
+          <i class="fa-solid fa-chart-line mr-1.5 text-sapphireNeon"></i>Analitik & Profil
+        </button>
+      </nav>
+
+      <!-- Right Utility Actions -->
+      <div class="flex items-center gap-3 relative">
+        
+        <!-- Focus Stopwatch Trigger -->
+        <button id="btn-focus-trigger" class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 hover:border-sapphireNeon/60 hover:text-sapphireNeon text-slate-400 flex items-center justify-center transition-all duration-300 relative group" title="Odaklanma Modu">
+          <i class="fa-solid fa-stopwatch text-sm"></i>
+          <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-sapphireNeon rounded-full animate-ping"></span>
+          <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-sapphireNeon rounded-full"></span>
+        </button>
+        
+        <!-- Firebase Status & Profile Dropdown Button -->
+        <button id="btn-profile-dropdown" class="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-emeraldNeon/60 transition-all duration-300 text-left">
+          <div class="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-emeraldNeon border border-emeraldNeon/20" id="user-avatar">
+            G
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 block leading-none">Eşitleme Modu</span>
+            <span class="text-xs font-semibold text-slate-200 leading-none" id="user-name-display">Guest / Yerel</span>
+          </div>
+          <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 ml-1"></i>
+        </button>
+        
+        <!-- Dynamic Dropdown Menu -->
+        <div id="profile-dropdown" class="glass-dropdown hidden absolute top-full right-0 mt-2 w-72 rounded-xl py-3 px-2 z-[9999]">
+          
+          <div class="px-3 py-2.5 border-b border-slate-800 mb-2">
+            <span class="text-[10px] text-slate-400 uppercase tracking-widest block font-mono">Bulut Senkronizasyonu</span>
+            <span class="text-xs font-bold text-slate-200 mt-1 block" id="dropdown-status-text">Kayıt Bulunmuyor</span>
+          </div>
+
+          <!-- Unlogged menu -->
+          <div id="dropdown-guest-menu">
+            <p class="text-[10px] text-slate-400 px-3 mb-3 leading-relaxed">Bulut yedekleme kapalı. Veriler tarayıcınızda (localStorage) saklanıyor.</p>
+            <button id="btn-open-login" class="w-full text-center py-2 bg-emeraldNeon hover:bg-emerald-600 text-cyberDark text-xs font-bold uppercase rounded-lg transition-all duration-300 mb-2 glow-emerald">
+              Giriş Yap veya Kaydol
+            </button>
+            <button id="btn-google-login" class="w-full flex items-center justify-center gap-2 py-2 bg-white hover:bg-slate-100 text-slate-900 text-xs font-bold uppercase rounded-lg transition-all duration-300">
+              <i class="fa-brands fa-google"></i> Google ile Giriş
+            </button>
+          </div>
+
+          <!-- Logged menu -->
+          <div id="dropdown-user-menu" class="hidden">
+            <div class="px-3 py-2 bg-emeraldNeon/5 rounded-lg border border-emeraldNeon/10 mb-3">
+              <span class="text-[10px] text-emeraldNeon block font-bold font-mono"><i class="fa-solid fa-circle-check mr-1"></i> BAĞLI VE GÜVENLİ</span>
+              <span class="text-xs text-slate-300 block truncate mt-1" id="dropdown-user-email">email@test.com</span>
+            </div>
+            
+            <button id="btn-sync-now" class="w-full flex items-center justify-center gap-2 py-2 bg-sapphireNeon hover:bg-blue-600 text-white text-xs font-bold uppercase rounded-lg transition-all duration-300 mb-2 glow-sapphire">
+              <i class="fa-solid fa-arrows-rotate animate-spin" id="sync-icon"></i> Verileri Şimdi Eşitle
+            </button>
+            
+            <button id="btn-logout" class="w-full text-center py-2 hover:bg-rose-500/10 text-rose-400 text-xs font-bold uppercase rounded-lg border border-rose-500/20 hover:border-rose-500/40 transition-all duration-300">
+              <i class="fa-solid fa-power-off mr-1.5"></i> Oturumu Kapat
+            </button>
+          </div>
+          
+        </div>
+      </div>
+    </header>
+
+    <!-- ========================================== -->
+    <!-- TAB 1: ANASAYFA (HESAPLAMA & VERİ GİRİŞİ) -->
+    <!-- ========================================== -->
+    <main id="tab-home" class="tab-content active flex-1">
+      
+      <!-- Sınav Türü Seçimi -->
+      <div class="flex flex-wrap justify-center gap-2 mb-6 w-full max-w-4xl mx-auto bg-slate-950/60 p-1.5 rounded-xl border border-slate-800/80">
+        <button id="exam-tab-lisans" class="flex-1 min-w-[120px] text-center py-2 text-[10px] sm:text-xs font-bold tracking-wider uppercase rounded-lg bg-emeraldNeon text-cyberDark glow-emerald transition-all duration-300" onclick="App.changeExamType('lisans')">
+          LİSANS (P3)
+        </button>
+        <button id="exam-tab-ogretmenlik" class="flex-1 min-w-[120px] text-center py-2 text-[10px] sm:text-xs font-bold tracking-wider uppercase rounded-lg text-slate-400 hover:text-slate-200 transition-all duration-300" onclick="App.changeExamType('ogretmenlik')">
+          ÖĞRETMENLİK
+        </button>
+        <button id="exam-tab-onlisans" class="flex-1 min-w-[120px] text-center py-2 text-[10px] sm:text-xs font-bold tracking-wider uppercase rounded-lg text-slate-400 hover:text-slate-200 transition-all duration-300" onclick="App.changeExamType('onlisans')">
+          ÖNLİSANS (P93)
+        </button>
+        <button id="exam-tab-ortaogretim" class="flex-1 min-w-[120px] text-center py-2 text-[10px] sm:text-xs font-bold tracking-wider uppercase rounded-lg text-slate-400 hover:text-slate-200 transition-all duration-300" onclick="App.changeExamType('ortaogretim')">
+          ORTAÖĞRETİM (P94)
+        </button>
+        <button id="exam-tab-dhbt" class="flex-1 min-w-[120px] text-center py-2 text-[10px] sm:text-xs font-bold tracking-wider uppercase rounded-lg text-slate-400 hover:text-slate-200 transition-all duration-300" onclick="App.changeExamType('dhbt')">
+          DHBT
+        </button>
+      </div>
+
+      <!-- Dinamik Seçenekler -->
+      <div id="dynamic-exam-options" class="flex flex-col md:flex-row justify-center gap-4 mb-6 max-w-3xl mx-auto">
+        <div id="oabt-field-container" class="flex-1 flex flex-col hidden">
+          <label class="text-[10px] text-slate-400 font-bold mb-1 ml-1 uppercase">ÖABT Alanı</label>
+          <select id="oabt-field-select" class="neon-input w-full px-3 py-2 rounded-lg text-xs" onchange="App.updateUI()">
+             <option value="none">Sadece Eğitim Bilimleri (P10) - ÖABT Yok</option>
+             <!-- Dynamic fields -->
+          </select>
+        </div>
+        <div id="dhbt-level-container" class="flex-1 flex flex-col hidden">
+          <label class="text-[10px] text-slate-400 font-bold mb-1 ml-1 uppercase">DHBT Öğrenim Düzeyi</label>
+          <select id="dhbt-level-select" class="neon-input w-full px-3 py-2 rounded-lg text-xs" onchange="App.updateUI()">
+             <option value="ortaogretim">Ortaöğretim (P122)</option>
+             <option value="onlisans">Önlisans (P123)</option>
+             <option value="lisans">Lisans (P124)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Puan Hesaplama Paneli -->
+        <section class="glass-panel rounded-2xl p-6 lg:col-span-8">
+          <div class="flex justify-between items-center mb-6 border-b border-slate-800/80 pb-4">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-calculator text-emeraldNeon text-lg"></i>
+              <h2 class="text-lg font-bold text-slate-100">Yeni Deneme Hesaplama & Kayıt</h2>
+            </div>
+            <span class="text-[10px] font-mono bg-emeraldNeon/10 border border-emeraldNeon/20 text-emeraldNeon px-2.5 py-1 rounded-full uppercase" id="current-exam-badge">Lisans P3 Modu</span>
+          </div>
+
+          <form id="puan-form" onsubmit="event.preventDefault();">
+            
+            <!-- Giriş Tipi Seçici -->
+            <div class="flex justify-end gap-1 mb-4">
+              <span class="text-xs font-bold text-slate-400 self-center mr-2"><i class="fa-solid fa-sliders text-emeraldNeon mr-1"></i> GİRİŞ YÖNTEMİ:</span>
+              <div class="bg-slate-950/60 p-0.5 rounded-lg border border-slate-800 flex">
+                <button type="button" id="btn-entry-summary" class="px-3 py-1 text-[10px] font-bold rounded bg-emeraldNeon text-cyberDark glow-emerald" onclick="App.changeEntryMode('summary')">HIZLI (ÖZET)</button>
+                <button type="button" id="btn-entry-detailed" class="px-3 py-1 text-[10px] font-bold rounded text-slate-400 hover:text-slate-200" onclick="App.changeEntryMode('detailed')">DETAYLI (DERS BAZLI)</button>
+              </div>
+            </div>
+
+            <!-- HIZLI GİRİŞ ALANLARI (ÖZET MOD) -->
+            <div id="summary-entry-fields" class="flex flex-wrap gap-4">
+              
+              <!-- Genel Yetenek Sütunu -->
+              <div class="flex-1 min-w-[200px] bg-slate-950/40 border border-slate-800/40 p-4 rounded-xl">
+                <div class="flex items-center gap-2 mb-4 text-emeraldNeon border-b border-slate-800/50 pb-2">
+                  <i class="fa-solid fa-brain text-sm"></i>
+                  <h3 class="text-xs font-bold uppercase tracking-wider">Genel Yetenek</h3>
+                </div>
+                <div class="mb-2">
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1">GY (60 Soru)</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="sum-gy-d" min="0" max="60" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="D">
+                    <input type="number" id="sum-gy-y" min="0" max="60" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="Y">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Genel Kültür Sütunu -->
+              <div class="flex-1 min-w-[200px] bg-slate-950/40 border border-slate-800/40 p-4 rounded-xl">
+                <div class="flex items-center gap-2 mb-4 text-sapphireNeon border-b border-slate-800/50 pb-2">
+                  <i class="fa-solid fa-earth-americas text-sm"></i>
+                  <h3 class="text-xs font-bold uppercase tracking-wider">Genel Kültür</h3>
+                </div>
+                <div class="mb-2">
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1">GK (60 Soru)</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="sum-gk-d" min="0" max="60" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="D">
+                    <input type="number" id="sum-gk-y" min="0" max="60" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="Y">
+                  </div>
+                </div>
+              </div>
+              
+            </div>
+
+            <!-- DETAYLI GİRİŞ ALANLARI (DERS BAZLI MOD) -->
+            <div id="detailed-entry-fields" class="flex flex-wrap gap-4 hidden">
+              
+              <!-- Genel Yetenek Sütunu -->
+              <div class="flex-1 min-w-[200px] bg-slate-950/40 border border-slate-800/40 p-4 rounded-xl">
+                <div class="flex items-center gap-2 mb-4 text-emeraldNeon border-b border-slate-800/50 pb-2">
+                  <i class="fa-solid fa-brain text-sm"></i>
+                  <h3 class="text-xs font-bold uppercase tracking-wider">Genel Yetenek</h3>
+                </div>
+                
+                <div class="mb-3">
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1">Türkçe (30)</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="gy-tr-d" min="0" max="30" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="D">
+                    <input type="number" id="gy-tr-y" min="0" max="30" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="Y">
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1">Matematik (30)</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="gy-mat-d" min="0" max="30" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="D">
+                    <input type="number" id="gy-mat-y" min="0" max="30" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="Y">
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Genel Kültür Sütunu -->
+              <div class="flex-1 min-w-[200px] bg-slate-950/40 border border-slate-800/40 p-4 rounded-xl">
+                <div class="flex items-center gap-2 mb-4 text-sapphireNeon border-b border-slate-800/50 pb-2">
+                  <i class="fa-solid fa-earth-americas text-sm"></i>
+                  <h3 class="text-xs font-bold uppercase tracking-wider">Genel Kültür</h3>
+                </div>
+                
+                <div class="mb-3">
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1">Tarih (27)</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="gk-tar-d" min="0" max="27" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="D">
+                    <input type="number" id="gk-tar-y" min="0" max="27" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="Y">
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1">Coğrafya (18)</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="gk-cog-d" min="0" max="18" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="D">
+                    <input type="number" id="gk-cog-y" min="0" max="18" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="Y">
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1">Vatandaşlık (15)</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="gk-vat-d" min="0" max="15" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="D">
+                    <input type="number" id="gk-vat-y" min="0" max="15" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="Y">
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- EK MODÜLLER (EĞİTİM, ÖABT, DHBT) -->
+            <div id="extra-modules-container" class="mt-4 flex flex-wrap gap-4">
+              <!-- Eğitim Bilimleri Sütunu -->
+              <div id="col-eb" class="flex-1 min-w-[200px] bg-slate-950/40 border border-slate-800/40 p-4 rounded-xl hidden">
+                <div class="flex items-center gap-2 mb-4 text-violetNeon border-b border-slate-800/50 pb-2">
+                  <i class="fa-solid fa-chalkboard-user text-sm"></i>
+                  <h3 class="text-xs font-bold uppercase tracking-wider">Eğitim Bilimleri</h3>
+                </div>
+                <div class="mb-2">
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1">EB (80 Soru)</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="eb-d" min="0" max="80" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="D">
+                    <input type="number" id="eb-y" min="0" max="80" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="Y">
+                  </div>
+                </div>
+              </div>
+              
+              <!-- ÖABT Sütunu -->
+              <div id="col-oabt" class="flex-1 min-w-[200px] bg-slate-950/40 border border-slate-800/40 p-4 rounded-xl hidden">
+                <div class="flex items-center gap-2 mb-4 text-rose-400 border-b border-slate-800/50 pb-2">
+                  <i class="fa-solid fa-microscope text-sm"></i>
+                  <h3 class="text-xs font-bold uppercase tracking-wider" id="oabt-title">ÖABT (Alan Bilgisi)</h3>
+                </div>
+                <div class="mb-2">
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1">Alan (75 Soru)</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="oabt-d" min="0" max="75" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="D">
+                    <input type="number" id="oabt-y" min="0" max="75" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="Y">
+                  </div>
+                </div>
+              </div>
+
+              <!-- DHBT Sütunu -->
+              <div id="col-dhbt" class="flex-1 min-w-[200px] bg-slate-950/40 border border-slate-800/40 p-4 rounded-xl hidden">
+                <div class="flex items-center gap-2 mb-4 text-amber-400 border-b border-slate-800/50 pb-2">
+                  <i class="fa-solid fa-book-quran text-sm"></i>
+                  <h3 class="text-xs font-bold uppercase tracking-wider">Din Hizmetleri (DHBT)</h3>
+                </div>
+                <div class="mb-3">
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1">DHBT-1 Temel (20 Soru)</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="dhbt1-d" min="0" max="20" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="D">
+                    <input type="number" id="dhbt1-y" min="0" max="20" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="Y">
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1">DHBT-2 İhtisas (20 Soru)</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="dhbt2-d" min="0" max="20" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="D">
+                    <input type="number" id="dhbt2-y" min="0" max="20" class="neon-input w-full px-2 py-1.5 rounded-md text-sm text-center" placeholder="Y">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-8 flex justify-center border-t border-slate-800/80 pt-6">
+              <button type="button" class="w-full md:w-auto px-12 py-3.5 rounded-xl bg-gradient-to-r from-sapphireNeon to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black tracking-widest text-sm uppercase transition-all duration-300 glow-sapphire transform hover:scale-105 flex justify-center items-center gap-3 shadow-2xl" onclick="App.onScoreChange()">
+                <i class="fa-solid fa-calculator"></i> Puanları Hesapla
+              </button>
+            </div>
+
+            <!-- Real-time Score Results display -->
+            <div id="results-container" class="mt-8 flex flex-col gap-4 min-h-[50px]">
+              <!-- Result cards injected by JS -->
+            </div>
+
+            <div class="mt-6 flex justify-end">
+              <button type="button" class="px-8 py-3.5 rounded-xl bg-emeraldNeon hover:bg-emerald-600 text-cyberDark font-bold tracking-wider text-xs uppercase transition-all duration-300 glow-emerald transform hover:scale-102 flex items-center gap-2" onclick="App.saveGeneralTrial()">
+                <i class="fa-solid fa-floppy-disk"></i> Deneme Sonucunu Kaydet
+              </button>
+            </div>
+
+          </form>
+        </section>
+
+        <!-- Branş Denemesi Paneli -->
+        <section class="glass-panel rounded-2xl p-6 lg:col-span-4 flex flex-col h-full justify-between">
+          <div>
+            <div class="flex items-center gap-2 mb-4 border-b border-slate-800/80 pb-3">
+              <i class="fa-solid fa-book-open text-violetNeon text-lg"></i>
+              <h2 class="text-lg font-bold text-slate-100">Branş Denemesi Ekle</h2>
+            </div>
+            
+            <p class="text-[10px] text-slate-400 leading-relaxed mb-4">Gelişiminizi ders bazlı takip etmek için her bir branşa ait deneme netlerinizi girin.</p>
+            
+            <form id="branch-form" onsubmit="event.preventDefault();">
+              
+              <!-- Select Branch -->
+              <div class="mb-4">
+                <label class="block text-xs font-bold text-slate-400 mb-1.5">Branş Seçimi</label>
+                <select id="branch-select" class="neon-input w-full px-3 py-2.5 rounded-lg text-xs" onchange="App.onBranchSelectChange()">
+                  <option value="Türkçe">Türkçe (30 Soru)</option>
+                  <option value="Matematik">Matematik (30 Soru)</option>
+                  <option value="Tarih">Tarih (27 Soru)</option>
+                  <option value="Coğrafya">Coğrafya (18 Soru)</option>
+                  <option value="Vatandaşlık">Vatandaşlık (9 Soru)</option>
+                  <!-- Dynamically populated ones will appear here -->
+                  <option value="CUSTOM_ADD" class="text-violetNeon font-bold">+ Yeni Branş Ekle...</option>
+                </select>
+              </div>
+
+              <!-- Custom Branch input if "CUSTOM_ADD" -->
+              <div class="mb-4 hidden" id="custom-branch-wrapper">
+                <label class="block text-xs font-bold text-violetNeon mb-1.5">Yeni Branş Adı</label>
+                <input type="text" id="custom-branch-name" class="neon-input w-full px-3 py-2.5 rounded-lg text-xs" placeholder="Örn: Eğitim Bilimleri">
+              </div>
+
+              <!-- Correct/Incorrect block -->
+              <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-400 mb-1.5">Doğru</label>
+                  <input type="number" id="branch-correct" min="0" class="neon-input w-full px-3 py-2.5 rounded-lg text-sm text-center" placeholder="D" oninput="App.onBranchScoreChange()">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-400 mb-1.5">Yanlış</label>
+                  <input type="number" id="branch-incorrect" min="0" class="neon-input w-full px-3 py-2.5 rounded-lg text-sm text-center" placeholder="Y" oninput="App.onBranchScoreChange()">
+                </div>
+              </div>
+
+              <!-- Branch Net Output -->
+              <div class="px-4 py-3 rounded-lg bg-violetNeon/10 border border-violetNeon/20 text-center mb-6">
+                <span class="text-[9px] text-slate-400 uppercase tracking-widest block mb-0.5">Elde Edilen Net</span>
+                <span class="font-mono text-xl font-bold text-violetNeon" id="branch-net-display">0.00</span>
+              </div>
+
+            </form>
+          </div>
+
+          <button type="button" class="w-full py-3.5 rounded-xl bg-violetNeon hover:bg-purple-600 text-white font-bold tracking-wider text-xs uppercase transition-all duration-300 glow-violet transform hover:scale-102 flex items-center justify-center gap-2" onclick="App.saveBranchTrial()">
+            <i class="fa-solid fa-check"></i> Branş Denemesini Kaydet
+          </button>
+        </section>
+
+      </div>
+
+    </main>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: PROFİL (ANALİTİK & GRAFİK) -->
+    <!-- ========================================== -->
+    <main id="tab-profile" class="tab-content flex-1">
+      
+      <!-- Quick Statistics Panels -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        
+        <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-emeraldNeon/10 border border-emeraldNeon/20 flex justify-center items-center text-emeraldNeon">
+            <i class="fa-solid fa-file-invoice text-lg"></i>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 block font-semibold leading-none uppercase mb-1">Genel Deneme</span>
+            <span class="text-xl font-bold text-slate-100 font-mono" id="stat-total-trials">0</span>
+          </div>
+        </div>
+
+        <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-sapphireNeon/10 border border-sapphireNeon/20 flex justify-center items-center text-sapphireNeon">
+            <i class="fa-solid fa-chart-simple text-lg"></i>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 block font-semibold leading-none uppercase mb-1">Ortalama Puan</span>
+            <span class="text-xl font-bold text-slate-100 font-mono" id="stat-avg-score">0.00</span>
+          </div>
+        </div>
+
+        <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-violetNeon/10 border border-violetNeon/20 flex justify-center items-center text-violetNeon">
+            <i class="fa-solid fa-medal text-lg"></i>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 block font-semibold leading-none uppercase mb-1">En Yüksek Puan</span>
+            <span class="text-xl font-bold text-slate-100 font-mono" id="stat-max-score">0.00</span>
+          </div>
+        </div>
+
+        <div class="glass-panel p-4 rounded-xl flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-rose-500/10 border border-rose-500/20 flex justify-center items-center text-rose-400">
+            <i class="fa-solid fa-hourglass-half text-lg"></i>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 block font-semibold leading-none uppercase mb-1">Odak Çalışması</span>
+            <span class="text-xl font-bold text-slate-100 font-mono" id="stat-total-sessions">0</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Main Graph Blocks -->
+      <div class="space-y-8">
+        
+        <!-- Genel Deneme Puan ve Net Grafiği -->
+        <section class="glass-panel rounded-2xl p-6">
+          <div class="flex items-center gap-2 mb-6 border-b border-slate-800/80 pb-4">
+            <i class="fa-solid fa-chart-area text-emeraldNeon text-lg"></i>
+            <div>
+              <h2 class="text-base font-bold text-slate-100">Genel Deneme Performans Gelişimi</h2>
+              <p class="text-[10px] text-slate-400">Zamana bağlı olarak hesaplanan KPSS puanı ve net başarı durumunuz</p>
+            </div>
+          </div>
+          <div class="relative h-[350px]">
+            <canvas id="general-progress-chart"></canvas>
+          </div>
+        </section>
+
+        <!-- Branş Denemeleri Grafiği & Detaylandırıcı Accordion -->
+        <section class="glass-panel rounded-2xl p-6">
+          
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-slate-800/80 pb-4">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-chart-bar text-violetNeon text-lg"></i>
+              <div>
+                <h2 class="text-base font-bold text-slate-100">Branş Bazlı Gelişim Analizleri</h2>
+                <p class="text-[10px] text-slate-400">Her bir dersin net değişim çizgilerini dinamik inceleyin</p>
+              </div>
+            </div>
+            
+            <!-- Branch selector inside graph dashboard -->
+            <div class="w-full md:w-56">
+              <select id="graph-branch-select" class="neon-input w-full px-3 py-2 rounded-lg text-xs" onchange="App.onGraphBranchSelectChange()">
+                <option value="Türkçe">Türkçe</option>
+                <option value="Matematik">Matematik</option>
+                <option value="Tarih">Tarih</option>
+                <option value="Coğrafya">Coğrafya</option>
+                <option value="Vatandaşlık">Vatandaşlık</option>
+                <!-- Custom ones injected here -->
+              </select>
+            </div>
+          </div>
+
+          <div class="relative h-[250px]">
+            <canvas id="branch-progress-chart"></canvas>
+          </div>
+        </section>
+
+        <!-- Veri Yönetimi & Bulut Ayarları (Tümünü Sil / Sıfırla) -->
+        <section class="glass-panel rounded-2xl p-5 border border-red-500/10 hover:border-red-500/20">
+          <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+              <span class="text-xs font-bold text-red-500 uppercase tracking-widest block font-mono mb-1">Tehlikeli Bölge</span>
+              <p class="text-[10px] text-slate-400 leading-relaxed">Uygulamadaki tüm deneme geçmişinizi, branş netlerinizi ve ayarlarınızı kalıcı olarak temizleyebilirsiniz. Bu işlem geri alınamaz.</p>
+            </div>
+            
+            <button class="px-6 py-2.5 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white font-bold tracking-wider text-xs uppercase border border-rose-500/20 hover:border-rose-500 transition-all duration-300" onclick="App.wipeDataConfirm()">
+              <i class="fa-solid fa-trash-can mr-1.5"></i> Tüm Verileri Sil
+            </button>
+          </div>
+        </section>
+
+      </div>
+
+    </main>
+
+    <!-- Footer Signature -->
+    <footer class="mt-auto pt-16 pb-4 border-t border-slate-900/60 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-500 relative z-10">
+      <p class="text-xs">© 2026 KPSS Analitik. Tüm Hakları Saklıdır.</p>
+      
+      <!-- Premium Letter Staggered signature -->
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] font-mono tracking-widest uppercase text-slate-600 flex items-center h-full pt-0.5">Tasarlayan ve Geliştiren</span>
+        <div id="footer-signature" class="font-mono text-xs font-bold tracking-widest uppercase select-none signature-flow-glow flex items-center"></div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: FIREBASE ENTEGRASYON AYARLARI -->
+  <!-- ========================================== -->
+  <div id="modal-settings" class="fixed inset-0 bg-slate-950/80 backdrop-filter backdrop-blur-md z-[10000] hidden flex items-center justify-center p-4">
+    <div class="glass-panel w-full max-w-lg rounded-2xl p-6 shadow-2xl relative border border-slate-800">
+      
+      <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-200" onclick="App.closeSettingsModal()">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <div class="flex items-center gap-2 mb-4 border-b border-slate-800 pb-3">
+        <i class="fa-solid fa-circle-nodes text-emeraldNeon text-lg"></i>
+        <h3 class="text-base font-bold text-slate-100">Firebase Bağlantı Kurulumu</h3>
+      </div>
+
+      <p class="text-xs text-slate-400 leading-relaxed mb-4">Uygulamanızı kendi Firebase Cloud Firestore veritabanınızla senkronize etmek için aşağıdaki konfigürasyon objesini girin. Şifreniz ve verileriniz tamamen kendi Firebase sunucunuzda barındırılır.</p>
+      
+      <div class="mb-4">
+        <label class="block text-xs font-bold text-slate-400 mb-2">Firebase Config JSON veya Object</label>
+        <textarea id="firebase-config-json" rows="8" class="w-full neon-input p-3 rounded-lg text-xs font-mono" placeholder='{
+  "apiKey": "YOUR_API_KEY",
+  "authDomain": "YOUR_AUTH_DOMAIN",
+  "projectId": "YOUR_PROJECT_ID",
+  "storageBucket": "YOUR_STORAGE_BUCKET",
+  "messagingSenderId": "YOUR_MESSAGING_SENDER_ID",
+  "appId": "YOUR_APP_ID"
+}'></textarea>
+      </div>
+
+      <div class="flex justify-between items-center gap-3">
+        <!-- Disconnect / Reset configuration -->
+        <button id="btn-firebase-reset" class="px-4 py-2 hover:bg-rose-500/10 text-rose-400 hover:text-rose-300 text-xs font-bold uppercase rounded-lg border border-rose-500/20 hover:border-rose-500/30 transition-all duration-300 hidden" onclick="App.disconnectFirebase()">
+          Bağlantıyı Kes
+        </button>
+
+        <div class="flex gap-2 ml-auto">
+          <button class="px-5 py-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-bold uppercase transition-all duration-300" onclick="App.closeSettingsModal()">İptal</button>
+          <button class="px-6 py-2 rounded-lg bg-emeraldNeon hover:bg-emerald-600 text-cyberDark text-xs font-bold uppercase transition-all duration-300 glow-emerald" onclick="App.saveFirebaseConfig()">Kaydet & Bağlan</button>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: KULLANICI GİRİŞ/KAYIT (LOGIN/REGISTER) -->
+  <!-- ========================================== -->
+  <div id="modal-auth" class="fixed inset-0 bg-slate-950/80 backdrop-filter backdrop-blur-md z-[10000] hidden flex items-center justify-center p-4">
+    <div class="glass-panel w-full max-w-md rounded-2xl p-6 shadow-2xl relative border border-slate-800">
+      
+      <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-200" onclick="App.closeAuthModal()">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <!-- Auth Tabs -->
+      <div class="flex border-b border-slate-800 mb-6">
+        <button id="auth-tab-login" class="flex-1 text-center pb-3 text-sm font-bold text-slate-100 border-b-2 border-emeraldNeon uppercase tracking-wider" onclick="App.toggleAuthTab('login')">Giriş Yap</button>
+        <button id="auth-tab-register" class="flex-1 text-center pb-3 text-sm font-bold text-slate-400 hover:text-slate-200 border-b-2 border-transparent uppercase tracking-wider" onclick="App.toggleAuthTab('register')">Kaydol</button>
+      </div>
+
+      <form id="auth-form" onsubmit="event.preventDefault();">
+        
+        <div class="mb-4">
+          <label class="block text-xs font-bold text-slate-400 mb-1.5">E-posta Adresi</label>
+          <input type="email" id="auth-email" required class="neon-input w-full px-4 py-2.5 rounded-lg text-sm" placeholder="örnek@kpss.com">
+        </div>
+
+        <div class="mb-6">
+          <label class="block text-xs font-bold text-slate-400 mb-1.5">Şifre</label>
+          <input type="password" id="auth-password" required class="neon-input w-full px-4 py-2.5 rounded-lg text-sm" placeholder="••••••••">
+        </div>
+
+        <!-- Feedback Alert message box -->
+        <div id="auth-alert" class="hidden mb-4 p-3 rounded-lg text-xs border"></div>
+
+        <button type="submit" id="btn-auth-submit" class="w-full py-3 rounded-xl bg-emeraldNeon hover:bg-emerald-600 text-cyberDark font-bold tracking-wider text-xs uppercase transition-all duration-300 glow-emerald" onclick="App.handleAuthSubmit()">
+          Oturum Aç
+        </button>
+
+        <div class="my-4 flex items-center justify-center opacity-50">
+          <div class="border-t border-slate-700 flex-grow"></div>
+          <span class="px-3 text-slate-500 text-xs font-semibold">VEYA</span>
+          <div class="border-t border-slate-700 flex-grow"></div>
+        </div>
+
+        <button type="button" class="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-bold tracking-wider text-xs uppercase transition-all duration-300 flex justify-center items-center gap-2" onclick="App.handleGoogleAuth()">
+          <i class="fa-brands fa-google text-red-500 text-sm"></i> Google ile Giriş Yap
+        </button>
+
+      </form>
+      
+    </div>
+  </div>
+
+  <!-- Master App Logic Connection -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
