@@ -568,6 +568,10 @@ window.App = {
     cells.forEach(cell => {
       const target = parseFloat(cell.getAttribute('data-score'));
       if (isNaN(target)) return;
+      
+      cell.classList.remove('score-count-finish');
+      cell.classList.add('score-counting');
+
       const start = performance.now();
       const duration = 900;
       const startVal = 0;
@@ -581,6 +585,7 @@ window.App = {
           requestAnimationFrame(tick);
         } else {
           cell.textContent = target.toFixed(5);
+          cell.classList.remove('score-counting');
           cell.classList.add('score-count-finish');
         }
       };
