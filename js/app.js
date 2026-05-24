@@ -18,9 +18,11 @@ const AppState = {
   customBranches: [],
   activeTab: 'home',
   
-  timerInterval: null,
+  activeBranch: null,
   timerSeconds: 0,
+  timerInterval: null,
   timerIsRunning: false,
+  timerMode: 'up', // 'up' (stopwatch) or 'down' (countdown)
   focusSessionsCount: 0
 };
 
@@ -74,42 +76,14 @@ window.App = {
   },
 
   runOpeningSequence() {
-    this.typeSignature('splash-signature', 'MEHMET KORKMAZ', 100);
+    const splash = document.getElementById('splash-screen');
+
     setTimeout(() => {
-      const splash = document.getElementById('splash-screen');
       if (splash) {
         splash.classList.add('fade-out');
-        setTimeout(() => {
-          this.typeSignature('footer-signature', 'MEHMET KORKMAZ', 120);
-        }, 600);
       }
       this.createStars();
-    }, 2600);
-  },
-
-  typeSignature(elementId, text, speed = 80) {
-    const container = document.getElementById(elementId);
-    if (!container) return;
-    container.innerHTML = '';
-    const letters = text.split('');
-    letters.forEach((char, idx) => {
-      const span = document.createElement('span');
-      span.className = 'signature-letter';
-      if (elementId === 'footer-signature') {
-         span.style.color = 'inherit';
-      }
-      span.textContent = char === ' ' ? '\u00A0' : char;
-      span.style.animationDelay = `${idx * speed}ms`;
-      container.appendChild(span);
-      
-      if (elementId === 'footer-signature') {
-          setTimeout(() => {
-              span.style.opacity = '1';
-              span.style.animation = 'wave-glow 3s infinite ease-in-out';
-              span.style.animationDelay = `${idx * 150}ms`;
-          }, text.length * speed + 500);
-      }
-    });
+    }, 3200); // wait for letter animations to fully complete
   },
 
   createStars() {
@@ -181,6 +155,7 @@ window.App = {
     ChartManager.renderGeneralChart('general-progress-chart', AppState.trials);
     const activeBranch = document.getElementById('graph-branch-select').value;
     ChartManager.renderBranchChart('branch-progress-chart', AppState.branchTrials, activeBranch);
+    this.renderPastTrials();
   },
 
   hasAnyInput() {
@@ -205,15 +180,7 @@ window.App = {
       }
     });
 
-    document.getElementById('btn-open-settings').addEventListener('click', () => {
-      const config = localStorage.getItem('kpss_firebase_config');
-      if (config) {
-        document.getElementById('firebase-config-json').value = JSON.stringify(JSON.parse(config), null, 2);
-      } else {
-        document.getElementById('firebase-config-json').value = '';
-      }
-      document.getElementById('modal-settings').classList.remove('hidden');
-    });
+    // btn-open-settings was removed, skip it
 
     document.getElementById('btn-open-login').addEventListener('click', () => {
       document.getElementById('modal-auth').classList.remove('hidden');
@@ -227,10 +194,10 @@ window.App = {
         const success = await DbManager.syncLocalToCloud();
         syncIcon.classList.remove('fa-spin');
         if (success) {
-          alert("Senkronizasyon başarılı!");
+          this.showToast('Senkronizasyon basarili!', 'success');
           await this.loadAndRefreshAll();
         } else {
-          alert("Senkronizasyon hatası!");
+          this.showToast('Senkronizasyon hatasi olustu!', 'error');
         }
       });
     }
@@ -405,8 +372,9 @@ window.App = {
   // CALCULATION LOGIC
   onScoreChange() {
     if (!AppState.coefficients) {
-       alert("Katsayılar yüklenemedi. Sayfayı yenileyin.");
-       return;
+       this.showToast('Katsayilar yuklenemedi. Sayfayi yenileyin.', 'error');
+       return null;
+
     }
     
     this.updateUI();
@@ -529,7 +497,12 @@ window.App = {
         return;
     }
 
-    const cols = resultsByYear[years[0]].map(r => r.name);
+    const examType = AppState.activeExamType;
+    let expectedCols = [];
+    if (examType === 'lisans') expectedCols = ['P1', 'P2', 'P3'];
+    else if (examType === 'onlisans') expectedCols = ['P93'];
+    else if (examType === 'ortaogretim') expectedCols = ['P94'];
+    else expectedCols = resultsByYear[years[0]].map(r => r.name);
     
     let html = `
     <div class="overflow-x-auto rounded-xl border border-slate-800/80 bg-slate-900/50 shadow-2xl">
@@ -537,7 +510,7 @@ window.App = {
         <thead class="bg-slate-950/80 text-[10px] uppercase font-bold text-slate-400">
           <tr>
             <th class="px-4 py-3 border-b border-slate-800 w-24">SINAV YILI</th>
-            ${cols.map(c => `<th class="px-4 py-3 border-b border-slate-800 text-right tracking-wider">${c}</th>`).join('')}
+            ${expectedCols.map(c => `<th class="px-4 py-3 border-b border-slate-800 text-right tracking-wider">${c}</th>`).join('')}
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-800/50 font-mono">
@@ -549,10 +522,15 @@ window.App = {
         html += `<tr class="${rowClass}">
             <td class="px-4 py-3 font-bold ${isCurrent ? 'text-emeraldNeon' : 'text-slate-200'}">${year}</td>`;
         
-        resultsByYear[year].forEach(res => {
-            const color = res.isMain ? (isCurrent ? 'text-emeraldNeon font-bold text-sm' : 'text-slate-200 font-bold') : 'text-slate-400';
-            const dataScoreAttr = res.isMain && isCurrent ? `data-score="${res.score}"` : '';
-            html += `<td class="px-4 py-3 text-right ${color} tracking-tight" ${dataScoreAttr}>${res.score}</td>`;
+        expectedCols.forEach(colName => {
+            const res = resultsByYear[year].find(r => r.name === colName);
+            if (res) {
+               const color = res.isMain ? (isCurrent ? 'text-emeraldNeon font-bold text-sm' : 'text-slate-200 font-bold') : 'text-slate-400';
+               const dataScoreAttr = res.isMain && isCurrent ? `data-score="${res.score}"` : '';
+               html += `<td class="px-4 py-3 text-right ${color} tracking-tight" ${dataScoreAttr}>${res.score}</td>`;
+            } else {
+               html += `<td class="px-4 py-3 text-right text-slate-500">-</td>`;
+            }
         });
         html += `</tr>`;
     });
@@ -588,14 +566,14 @@ window.App = {
     const total_net = gy_net + gk_net + eb_net + oabt_net + dhbt1_net + dhbt2_net;
 
     if (total_net === 0) {
-      alert("Lütfen denemeyi kaydetmeden önce net değeri oluşturacak doğru veya yanlış girişleri yapın.");
+      this.showToast('Net degeri olusturacak dogru/yanlis giris yok.', 'warning');
       return;
     }
 
     // Always fetch score directly from table highlight
     const scoreElem = document.querySelector('#results-container [data-score]');
     if (!scoreElem) {
-       alert("Lütfen önce Puan Hesapla butonuna basarak puanınızı oluşturun.");
+       this.showToast('Lutfen once Puan Hesapla butonuna basin.', 'warning');
        return;
     }
     const mainScore = parseFloat(scoreElem.getAttribute('data-score'));
@@ -616,9 +594,10 @@ window.App = {
     document.querySelectorAll('#puan-form input[type="number"]').forEach(input => input.value = '');
     document.getElementById('results-container').innerHTML = ''; // clear table after save
 
-    alert("Deneme başarısıyla sisteme kaydedildi!");
+    this.showToast('Deneme basariyla kaydedildi!', 'success');
     this.calculateOverallStats();
     ChartManager.renderGeneralChart('general-progress-chart', AppState.trials);
+    this.renderPastTrials();
   },
 
   // BRANCH TRIAL
@@ -647,7 +626,7 @@ window.App = {
     if (branchName === 'CUSTOM_ADD') {
       const customName = document.getElementById('custom-branch-name').value.trim();
       if (!customName) {
-        alert("Lütfen yeni branş adını giriniz.");
+        this.showToast('Lutfen brans adini giriniz.', 'warning');
         return;
       }
       branchName = customName;
@@ -663,7 +642,7 @@ window.App = {
     const net = correct - (incorrect / 4);
 
     if (correct === 0 && incorrect === 0) {
-      alert("Lütfen geçerli bir branş neti kaydetmek için doğru/yanlış değerleri girin.");
+      this.showToast('Dogru/yanlis degerlerini girin.', 'warning');
       return;
     }
 
@@ -682,7 +661,7 @@ window.App = {
     document.getElementById('branch-incorrect').value = '';
     this.onBranchScoreChange();
 
-    alert(`${branchName} branş denemesi başarıyla kaydedildi!`);
+    this.showToast(branchName + ' brans denemesi kaydedildi!', 'success');
     const activeGraphBranch = document.getElementById('graph-branch-select').value;
     ChartManager.renderBranchChart('branch-progress-chart', AppState.branchTrials, activeGraphBranch);
   },
@@ -741,16 +720,32 @@ window.App = {
     document.getElementById('stat-total-sessions').textContent = AppState.focusSessionsCount;
   },
 
-  // STOPWATCH
-  openFocusOverlay() {
+  // STOPWATCH & COUNTDOWN
+  openFocusOverlay(mode = 'up') {
+    AppState.timerMode = mode;
     document.getElementById('focus-overlay').classList.add('active');
     document.body.style.overflow = 'hidden';
   },
 
+  startCountdownTimer() {
+    const minStr = document.getElementById('countdown-input').value;
+    const mins = parseInt(minStr, 10);
+    if (!mins || mins <= 0) {
+      this.showToast('Lutfen gecerli bir dakika giriniz.', 'warning');
+      return;
+    }
+    
+    this.resetStopwatch();
+    AppState.timerSeconds = mins * 60;
+    this.updateStopwatchDisplay();
+    
+    this.openFocusOverlay('down');
+    this.toggleStopwatch();
+  },
+
   closeFocusOverlay() {
     if (AppState.timerIsRunning) {
-      if (!confirm("Kronometre çalışıyor. Odaktan çıkmak sayacı durduracaktır. Çıkmak istiyor musunuz?")) return;
-      this.toggleStopwatch();
+      this.toggleStopwatch(); // stop it
     }
     document.getElementById('focus-overlay').classList.remove('active');
     document.body.style.overflow = '';
@@ -778,14 +773,26 @@ window.App = {
       btnIcon.className = "fa-solid fa-pause";
       btnText.textContent = "Duraklat";
 
-      if (AppState.timerSeconds === 0) {
+      if (AppState.timerSeconds === 0 && AppState.timerMode === 'up') {
         AppState.focusSessionsCount++;
         localStorage.setItem('kpss_focus_sessions', AppState.focusSessionsCount);
         this.calculateOverallStats();
       }
 
       AppState.timerInterval = setInterval(() => {
-        AppState.timerSeconds++;
+        if (AppState.timerMode === 'down') {
+          AppState.timerSeconds--;
+          if (AppState.timerSeconds <= 0) {
+            this.toggleStopwatch();
+            this.showToast('Sure doldu! Odaklanma oturumu tamamlandi.', 'success');
+            AppState.focusSessionsCount++;
+            localStorage.setItem('kpss_focus_sessions', AppState.focusSessionsCount);
+            this.calculateOverallStats();
+            AppState.timerSeconds = 0;
+          }
+        } else {
+          AppState.timerSeconds++;
+        }
         this.updateStopwatchDisplay();
       }, 1000);
     }
@@ -806,6 +813,7 @@ window.App = {
   resetStopwatch() {
     clearInterval(AppState.timerInterval);
     AppState.timerSeconds = 0;
+    AppState.timerMode = 'up';
     AppState.timerIsRunning = false;
     this.updateStopwatchDisplay();
     
@@ -824,32 +832,30 @@ window.App = {
   async saveFirebaseConfig() {
     const configStr = document.getElementById('firebase-config-json').value.trim();
     if (!configStr) {
-      alert("Lütfen Firebase yapılandırma objesini yapıştırın.");
+      this.showToast('Lutfen Firebase yapilandirma objesini yapistirin.', 'warning');
       return;
     }
     try {
       const parsed = JSON.parse(configStr);
       if (!parsed.apiKey || !parsed.projectId) {
-        throw new Error("Geçersiz Firebase yapılandırma objesi.");
+        throw new Error('Gecersiz Firebase yapilandirma objesi.');
       }
       const success = await AuthManager.saveConfigAndConnect(parsed);
       if (success) {
-        alert("Firebase bağlantısı başarıyla sağlandı!");
+        this.showToast('Firebase baglantisi basariyla saglandi!', 'success');
         this.closeSettingsModal();
         await this.loadAndRefreshAll();
       }
     } catch (err) {
-      alert("Yapılandırma yüklenirken hata oluştu: " + err.message);
+      this.showToast('Yapilandirma hatasi: ' + err.message, 'error');
     }
   },
 
   disconnectFirebase() {
-    if (confirm("Firebase bağlantısını kesmek istiyor musunuz? Verileriniz sadece local cihazınızda tutulacaktır.")) {
-      AuthManager.disconnect();
-      this.closeSettingsModal();
-      alert("Firebase bağlantısı kesildi.");
-      this.loadAndRefreshAll();
-    }
+    AuthManager.disconnect();
+    this.closeSettingsModal();
+    this.showToast('Firebase baglantisi kesildi.', 'info');
+    this.loadAndRefreshAll();
   },
 
   closeSettingsModal() {
@@ -950,23 +956,96 @@ window.App = {
   },
 
   async logoutUser() {
-    if (confirm("Oturumu kapatmak istediğinizden emin misiniz?")) {
-      await AuthManager.logOut();
-      alert("Oturum başarıyla kapatıldı.");
-      await this.loadAndRefreshAll();
-    }
+    await AuthManager.logOut();
+    this.showToast('Oturum basariyla kapatildi.', 'info');
+    await this.loadAndRefreshAll();
   },
 
   async wipeDataConfirm() {
-    if (confirm("DİKKAT! Tüm deneme verileriniz kalıcı olarak silinecektir. Emin misiniz?")) {
-      await DbManager.wipeAllData();
-      this.resetStopwatch();
-      AppState.focusSessionsCount = 0;
-      localStorage.removeItem('kpss_focus_sessions');
-      alert("Tüm verileriniz başarıyla temizlendi.");
-      await this.loadAndRefreshAll();
-      this.switchTab('home');
+    this.showConfirmModal(
+      'DIKKAT! Tum deneme verileriniz kalici olarak silinecektir. Emin misiniz?',
+      async () => {
+        await DbManager.wipeAllData();
+        this.resetStopwatch();
+        AppState.focusSessionsCount = 0;
+        localStorage.removeItem('kpss_focus_sessions');
+        this.showToast('Tum verileriniz basariyla temizlendi.', 'info');
+        await this.loadAndRefreshAll();
+        this.switchTab('home');
+      }
+    );
+  },
+
+  // ==========================
+  // TOAST NOTIFICATION SYSTEM
+  // ==========================
+  showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', warning: 'fa-triangle-exclamation', info: 'fa-circle-info' };
+    const colors = {
+      success: 'border-emerald-500/50 bg-emerald-950/90 text-emerald-300',
+      error: 'border-rose-500/50 bg-rose-950/90 text-rose-300',
+      warning: 'border-amber-500/50 bg-amber-950/90 text-amber-300',
+      info: 'border-blue-500/50 bg-blue-950/90 text-blue-300'
+    };
+    const iconColors = { success: 'text-emerald-400', error: 'text-rose-400', warning: 'text-amber-400', info: 'text-blue-400' };
+    const toast = document.createElement('div');
+    toast.className = 'pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-xl shadow-2xl text-sm font-medium min-w-[280px] max-w-[380px] transition-all duration-300 ease-out opacity-0 -translate-y-4 ' + (colors[type] || colors.info);
+    toast.innerHTML = '<i class="fa-solid ' + (icons[type] || icons.info) + ' text-base ' + (iconColors[type] || iconColors.info) + '"></i><span class="flex-1">' + message + '</span><button onclick="this.parentElement.remove()" class="ml-2 opacity-50 hover:opacity-100 transition-opacity text-xs"><i class="fa-solid fa-xmark"></i></button>';
+    container.appendChild(toast);
+    requestAnimationFrame(() => { toast.classList.remove('opacity-0', '-translate-y-4'); });
+    setTimeout(() => { toast.classList.add('opacity-0'); setTimeout(() => toast.remove(), 400); }, 3500);
+  },
+
+  // ==========================
+  // CUSTOM CONFIRM MODAL
+  // ==========================
+  showConfirmModal(message, onConfirm) {
+    const existing = document.getElementById('custom-confirm-modal');
+    if (existing) existing.remove();
+    const modal = document.createElement('div');
+    modal.id = 'custom-confirm-modal';
+    modal.className = 'fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md';
+    modal.innerHTML = '<div class="glass-panel w-full max-w-sm rounded-2xl p-6 border border-rose-500/20 shadow-2xl text-center"><div class="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-triangle-exclamation text-rose-400 text-xl"></i></div><p class="text-slate-200 text-sm leading-relaxed mb-6">' + message + '</p><div class="flex gap-3"><button id="confirm-cancel" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase transition-all duration-200">Vazgec</button><button id="confirm-ok" class="flex-1 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold uppercase transition-all duration-200"><i class="fa-solid fa-trash-can mr-1"></i> Sil</button></div></div>';
+    document.body.appendChild(modal);
+    modal.querySelector('#confirm-cancel').addEventListener('click', () => modal.remove());
+    modal.querySelector('#confirm-ok').addEventListener('click', async () => { modal.remove(); await onConfirm(); });
+  },
+
+  // ==========================
+  // PAST TRIALS LIST & DELETE
+  // ==========================
+  renderPastTrials() {
+    const container = document.getElementById('past-trials-container');
+    if (!container) return;
+    const trials = AppState.trials;
+    if (!trials || trials.length === 0) {
+      container.innerHTML = '<p class="text-slate-500 text-xs text-center py-6">Henuz kaydedilmis bir genel deneme yok.</p>';
+      return;
     }
+    const sorted = [...trials].reverse();
+    const examLabels = { lisans: 'Lisans', onlisans: 'On Lisans', ortaogretim: 'Ortaogretim', ogretmenlik: 'Ogretmenlik', dhbt: 'DHBT' };
+    container.innerHTML = sorted.map((t, idx) => {
+      const date = new Date(t.date);
+      const dateStr = date.getDate().toString().padStart(2,'0') + '/' + (date.getMonth()+1).toString().padStart(2,'0') + '/' + date.getFullYear() + ' ' + date.getHours().toString().padStart(2,'0') + ':' + date.getMinutes().toString().padStart(2,'0');
+      const originalIdx = trials.length - 1 - idx;
+      const label = examLabels[t.examType] || t.examType;
+      return '<div class="flex items-center justify-between gap-3 py-2.5 px-3 mb-2 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all"><div class="flex items-center gap-3 min-w-0 flex-wrap"><span class="text-[10px] font-mono text-slate-500 shrink-0">' + dateStr + '</span><span class="text-[10px] font-bold text-violetNeon uppercase">' + label + '</span><span class="text-xs text-emeraldNeon font-bold">' + (t.score ? t.score.toFixed(2) : '0.00') + ' puan</span><span class="text-[10px] text-slate-400">Net: ' + (t.total_net ? t.total_net.toFixed(2) : '0.00') + '</span></div><button onclick="App.deleteTrialByIndex(' + originalIdx + ')" class="shrink-0 w-7 h-7 rounded-lg bg-rose-500/10 hover:bg-rose-500 border border-rose-500/20 hover:border-rose-500 text-rose-400 hover:text-white text-xs transition-all duration-200 flex items-center justify-center" title="Bu denemeyi sil"><i class="fa-solid fa-trash-can"></i></button></div>';
+    }).join('');
+  },
+
+  async deleteTrialByIndex(index) {
+    this.showConfirmModal(
+      'Bu deneme kaydi kalici olarak silinecek. Emin misiniz?',
+      async () => {
+        AppState.trials = await DbManager.deleteTrialByIndex(index);
+        this.showToast('Deneme kaydi silindi.', 'info');
+        this.calculateOverallStats();
+        ChartManager.renderGeneralChart('general-progress-chart', AppState.trials);
+        this.renderPastTrials();
+      }
+    );
   }
 };
 

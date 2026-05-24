@@ -90,7 +90,16 @@ export const DbManager = {
     return filtered;
   },
 
+  // DELETE TRIAL BY INDEX
+  async deleteTrialByIndex(index) {
+    const localTrials = this.getLocalTrials();
+    if (index < 0 || index >= localTrials.length) return localTrials;
+    const trialId = localTrials[index].id;
+    return await this.deleteTrial(trialId);
+  },
+
   // GET BRANCH TRIALS
+
   async getBranchTrials() {
     if (this.isFirebaseActive && this.currentUser && this.db) {
       try {

@@ -41,24 +41,38 @@
 </head>
 <body class="bg-cyberDark min-h-screen text-slate-200 antialiased relative overflow-x-hidden">
   
-  <div class="light-beam"></div>
-
   <!-- Arkaplan Görsel Efektleri -->
   <div class="light-beam"></div>
-  <canvas id="bg-canvas"></canvas>
   <div id="stars-container" class="stars-container"></div>
+  
+  <!-- Global Toast Notification Container -->
+  <div id="toast-container" class="fixed top-5 left-1/2 -translate-x-1/2 z-[11000] flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- ========================================== -->
   <!-- AÇILIŞ SÜRECİ (SPLASH SCREEN & İMZA) -->
   <!-- ========================================== -->
   <div id="splash-screen">
-    <div class="splash-ring">
-      <div class="splash-logo">KPSS</div>
-    </div>
-    <div class="splash-sub">PERFORMANS TAKİP & ANALİTİK</div>
-    <div class="mt-8 flex flex-col items-center">
-      <span class="text-xs text-slate-500 block mb-1">Geliştirici</span>
-      <div id="splash-signature" class="font-mono text-emeraldNeon font-bold tracking-widest text-sm uppercase"></div>
+    <div class="splash-content">
+      <div class="splash-orbs">
+        <div class="splash-orb splash-orb-1"></div>
+        <div class="splash-orb splash-orb-2"></div>
+        <div class="splash-orb splash-orb-3"></div>
+      </div>
+      <div class="splash-logo-wrapper">
+        <div class="splash-logo-letters">
+          <span class="splash-letter" style="--i:0">K</span>
+          <span class="splash-letter" style="--i:1">P</span>
+          <span class="splash-letter" style="--i:2">S</span>
+          <span class="splash-letter" style="--i:3">S</span>
+        </div>
+        <div class="splash-underline"></div>
+      </div>
+      <div class="splash-sub">PERFORMANS TAKİP &amp; ANALİTİK</div>
+      <div class="splash-badge">
+        <span class="splash-badge-dot"></span>
+        <span class="text-[10px] font-mono tracking-widest text-slate-400">MEHMET KORKMAZ</span>
+        <span class="splash-badge-dot"></span>
+      </div>
     </div>
   </div>
 
@@ -68,12 +82,12 @@
   <div id="focus-overlay" class="flex flex-col justify-center items-center">
     <div class="focus-overlay-content flex flex-col items-center max-w-md w-full px-6">
       
-      <!-- Premium Rotating Light Ring and Chronometer -->
+      <!-- Premium Rectangular Light Ring and Chronometer -->
       <div class="focus-timer-container timer-paused mb-8 glow-sapphire" id="timer-container">
         <div class="focus-timer-inner">
-          <span class="text-xs text-slate-500 tracking-widest uppercase mb-1">Odaklanma Süresi</span>
-          <div id="focus-time-display" class="font-mono text-4xl font-bold text-slate-100 tracking-wider">00:00:00</div>
-          <span class="text-[10px] text-emeraldNeon tracking-widest uppercase mt-2 glow-pulse" id="timer-status">Hazır</span>
+          <span class="text-[10px] text-slate-500 tracking-widest uppercase mb-1">Odaklanma Süresi</span>
+          <div id="focus-time-display" class="font-mono text-5xl font-bold text-slate-100 tracking-wider">00:00:00</div>
+          <span class="text-[9px] text-emeraldNeon tracking-widest uppercase mt-2 glow-pulse" id="timer-status">Hazır</span>
         </div>
       </div>
       
@@ -156,11 +170,8 @@
           <!-- Unlogged menu -->
           <div id="dropdown-guest-menu">
             <p class="text-[10px] text-slate-400 px-3 mb-3 leading-relaxed">Bulut yedekleme kapalı. Veriler tarayıcınızda (localStorage) saklanıyor.</p>
-            <button id="btn-open-login" class="w-full text-center py-2 bg-emeraldNeon hover:bg-emerald-600 text-cyberDark text-xs font-bold uppercase rounded-lg transition-all duration-300 mb-2 glow-emerald">
-              Giriş Yap veya Kaydol
-            </button>
-            <button id="btn-google-login" class="w-full flex items-center justify-center gap-2 py-2 bg-white hover:bg-slate-100 text-slate-900 text-xs font-bold uppercase rounded-lg transition-all duration-300">
-              <i class="fa-brands fa-google"></i> Google ile Giriş
+            <button id="btn-open-login" class="w-full flex items-center justify-center gap-2 py-2 bg-emeraldNeon hover:bg-emerald-600 text-cyberDark text-xs font-bold uppercase rounded-lg transition-all duration-300 mb-2 glow-emerald">
+              <i class="fa-brands fa-google"></i> Google ile Giriş Yap
             </button>
           </div>
 
@@ -474,9 +485,24 @@
             </form>
           </div>
 
-          <button type="button" class="w-full py-3.5 rounded-xl bg-violetNeon hover:bg-purple-600 text-white font-bold tracking-wider text-xs uppercase transition-all duration-300 glow-violet transform hover:scale-102 flex items-center justify-center gap-2" onclick="App.saveBranchTrial()">
+          <button type="button" class="w-full py-3.5 rounded-xl bg-violetNeon hover:bg-purple-600 text-white font-bold tracking-wider text-xs uppercase transition-all duration-300 glow-violet transform hover:scale-102 flex items-center justify-center gap-2 mb-6" onclick="App.saveBranchTrial()">
             <i class="fa-solid fa-check"></i> Branş Denemesini Kaydet
           </button>
+
+          <!-- Yeni: Geri Sayım Zamanlayıcısı (Süreli Denemeler İçin) -->
+          <div class="border-t border-slate-800/80 pt-4 mt-auto">
+            <div class="flex items-center gap-2 mb-3">
+              <i class="fa-solid fa-hourglass-start text-emeraldNeon text-sm"></i>
+              <h3 class="text-sm font-bold text-slate-200">Geri Sayım</h3>
+            </div>
+            <p class="text-[10px] text-slate-400 mb-3 leading-tight">Deneme çözerken odak moduna geçmek için süre belirleyin.</p>
+            <div class="flex gap-2">
+              <input type="number" id="countdown-input" min="1" max="180" class="neon-input flex-1 px-3 py-2 rounded-lg text-xs" placeholder="Süre (dk) - Örn: 40">
+              <button type="button" class="px-4 py-2 rounded-lg bg-emeraldNeon hover:bg-emerald-600 text-cyberDark font-bold tracking-wider text-xs uppercase transition-all duration-300 glow-emerald" onclick="App.startCountdownTimer()">
+                <i class="fa-solid fa-play"></i> Başlat
+              </button>
+            </div>
+          </div>
         </section>
 
       </div>
@@ -580,6 +606,21 @@
           </div>
         </section>
 
+        <!-- Geçmiş Denemeler ve Tekli Silme -->
+        <section class="glass-panel rounded-2xl p-6">
+          <div class="flex items-center gap-2 mb-4 border-b border-slate-800/80 pb-4">
+            <i class="fa-solid fa-list-check text-blue-400 text-lg"></i>
+            <div>
+              <h2 class="text-base font-bold text-slate-100">Geçmiş Deneme Kayıtları</h2>
+              <p class="text-[10px] text-slate-400">Önceki genel denemelerinizi inceleyebilir ve tekli olarak silebilirsiniz.</p>
+            </div>
+          </div>
+          
+          <div class="max-h-64 overflow-y-auto pr-2 custom-scrollbar" id="past-trials-container">
+            <!-- Dynamically populated by JS -->
+          </div>
+        </section>
+
         <!-- Veri Yönetimi & Bulut Ayarları (Tümünü Sil / Sıfırla) -->
         <section class="glass-panel rounded-2xl p-5 border border-red-500/10 hover:border-red-500/20">
           <div class="flex flex-col md:flex-row justify-between items-center gap-4">
@@ -602,10 +643,10 @@
     <footer class="mt-auto pt-16 pb-4 border-t border-slate-900/60 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-500 relative z-10">
       <p class="text-xs">© 2026 KPSS Analitik. Tüm Hakları Saklıdır.</p>
       
-      <!-- Premium Letter Staggered signature -->
-      <div class="flex items-center gap-2">
-        <span class="text-[10px] font-mono tracking-widest uppercase text-slate-600 flex items-center h-full pt-0.5">Tasarlayan ve Geliştiren</span>
-        <div id="footer-signature" class="font-mono text-xs font-bold tracking-widest uppercase select-none signature-flow-glow flex items-center"></div>
+      <!-- Premium Stacked Signature Badge -->
+      <div class="flex flex-col items-center justify-center p-3 rounded-lg border border-emeraldNeon/10 bg-emeraldNeon/5 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+        <span class="text-[9px] font-mono tracking-widest uppercase text-slate-500 mb-1">Tasarlayan ve Geliştiren</span>
+        <div class="font-mono text-xs font-bold tracking-widest uppercase select-none text-emeraldNeon drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]">MEHMET KORKMAZ</div>
       </div>
     </footer>
 
@@ -665,36 +706,13 @@
         <i class="fa-solid fa-xmark text-lg"></i>
       </button>
 
-      <!-- Auth Tabs -->
-      <div class="flex border-b border-slate-800 mb-6">
-        <button id="auth-tab-login" class="flex-1 text-center pb-3 text-sm font-bold text-slate-100 border-b-2 border-emeraldNeon uppercase tracking-wider" onclick="App.toggleAuthTab('login')">Giriş Yap</button>
-        <button id="auth-tab-register" class="flex-1 text-center pb-3 text-sm font-bold text-slate-400 hover:text-slate-200 border-b-2 border-transparent uppercase tracking-wider" onclick="App.toggleAuthTab('register')">Kaydol</button>
-      </div>
-
       <form id="auth-form" onsubmit="event.preventDefault();">
+        <div class="mb-4 text-center">
+          <p class="text-sm text-slate-400">Verilerinizin yedeklenmesi ve cihazlar arası senkronizasyon için Google hesabınızla giriş yapın.</p>
+        </div>
         
-        <div class="mb-4">
-          <label class="block text-xs font-bold text-slate-400 mb-1.5">E-posta Adresi</label>
-          <input type="email" id="auth-email" required class="neon-input w-full px-4 py-2.5 rounded-lg text-sm" placeholder="örnek@kpss.com">
-        </div>
-
-        <div class="mb-6">
-          <label class="block text-xs font-bold text-slate-400 mb-1.5">Şifre</label>
-          <input type="password" id="auth-password" required class="neon-input w-full px-4 py-2.5 rounded-lg text-sm" placeholder="••••••••">
-        </div>
-
         <!-- Feedback Alert message box -->
         <div id="auth-alert" class="hidden mb-4 p-3 rounded-lg text-xs border"></div>
-
-        <button type="submit" id="btn-auth-submit" class="w-full py-3 rounded-xl bg-emeraldNeon hover:bg-emerald-600 text-cyberDark font-bold tracking-wider text-xs uppercase transition-all duration-300 glow-emerald" onclick="App.handleAuthSubmit()">
-          Oturum Aç
-        </button>
-
-        <div class="my-4 flex items-center justify-center opacity-50">
-          <div class="border-t border-slate-700 flex-grow"></div>
-          <span class="px-3 text-slate-500 text-xs font-semibold">VEYA</span>
-          <div class="border-t border-slate-700 flex-grow"></div>
-        </div>
 
         <button type="button" class="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-bold tracking-wider text-xs uppercase transition-all duration-300 flex justify-center items-center gap-2" onclick="App.handleGoogleAuth()">
           <i class="fa-brands fa-google text-red-500 text-sm"></i> Google ile Giriş Yap

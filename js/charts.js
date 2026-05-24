@@ -46,11 +46,12 @@ export const ChartManager = {
     const netGradient = createGradient(ctx, 'rgba(16, 185, 129, 0.4)', 'rgba(16, 185, 129, 0.0)');
 
     generalChartInstance = new Chart(ctx, {
-      type: 'line',
+      type: 'bar',
       data: {
         labels: labels,
         datasets: [
           {
+            type: 'line',
             label: 'KPSS Puanı',
             data: scores,
             borderColor: '#3b82f6',
@@ -63,15 +64,11 @@ export const ChartManager = {
             yAxisID: 'yScore',
           },
           {
+            type: 'bar',
             label: 'Toplam Net',
             data: nets,
-            borderColor: '#10b981',
-            backgroundColor: netGradient,
-            borderWidth: 3,
-            fill: true,
-            tension: 0.4,
-            pointBackgroundColor: '#10b981',
-            pointHoverRadius: 8,
+            backgroundColor: '#10b981',
+            borderRadius: 4,
             yAxisID: 'yNet',
           }
         ]
